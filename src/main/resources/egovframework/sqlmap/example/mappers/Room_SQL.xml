@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.sonorous.admin.service.impl.RoomMapper">
+
+	<resultMap id="room" type="egovframework.sonorous.admin.service.RoomVO">
+	</resultMap>
+
+	<insert id="insertRoom" parameterType="roomVO">
+		INSERT INTO T_ROOM(
+			ROOM_ID
+			, ROOM_NAME
+			, ROOM_AMOUNT
+			, ROOM_PRICE
+			, ROOM_SIZE
+			, PEOPLE_NUM
+			, BED_TYPE
+			, ROOM_SPEC
+			, INS_ID
+			, INS_DATE
+		) VALUES (
+			(SELECT ROOM_ID FROM(SELECT IFNULL(MAX(ROOM_ID)+1,1) AS ROOM_ID FROM T_ROOM) A)
+			,#{roomName}
+			,#{roomAmount}
+			,#{roomPrice}
+			,#{roomSize}
+			,#{peopleNum}
+			,#{bedType}
+			,#{roomSpec}
+			,#{insId}
+			, NOW()
+		)
+
+	</insert>
+
+	<update id="updateRoom">
+		UPDATE 
+			T_ROOM
+		SET 
+			ROOM_NAME = #{roomName}
+			, ROOM_AMOUNT = #{roomAmount}
+			, ROOM_PRICE = #{roomPrice}
+			, ROOM_SIZE = #{roomSize}
+			, PEOPLE_NUM = #{peopleNum}
+			, BED_TYPE = #{bedType}
+			, ROOM_SPEC = #{roomSpec}
+			, MOD_ID = #{insId}
+			, MOD_DATE = NOW()
+		WHERE ROOM_ID = #{roomId}
+	</update>
+
+	<delete id="deleteRoom" parameterType="int">
+		DELETE 
+		FROM T_ROOM
+		WHERE ROOM_ID = #{roomId}
+	</delete>
+	
+	<delete id="deleteImageAll" parameterType="int">
+		DELETE FROM T_ROOM_IMAGE
+		WHERE ROOM_ID = #{roomId}
+	</delete>
+	
+	<select id="selectRoom" parameterType="int" resultType="egovMap">
+			SELECT 
+				ROOM_ID
+				, ROOM_NAME
+				, ROOM_AMOUNT
+				, ROOM_PRICE
+				, ROOM_SIZE
+				, PEOPLE_NUM
+				, BED_TYPE
+				, ROOM_SPEC
+				, INS_ID
+				, INS_DATE
+				, MOD_ID
+				, MOD_DATE
+			FROM T_ROOM
+			WHERE ROOM_ID = #{roomId}
+	</select>
+	
+	<select id="selectImage" parameterType="int" resultType="egovMap">
+			SELECT 
+				ROOM_IMAGE_ID
+				, ROOM_ID
+				, ROOM_IMAGE_NAME
+				, ROOM_IMAGE_PATH
+			FROM T_ROOM_IMAGE
+			WHERE ROOM_ID = #{roomId}
+	</select>
+
+	<select id="selectRoomList" parameterType="listVO" resultType="egovMap">
+			SELECT
+				R.ROOM_ID
+				, R.ROOM_NAME
+				, R.ROOM_AMOUNT
+				, R.ROOM_PRICE
+				, R.ROOM_SIZE
+				, R.PEOPLE_NUM
+				, R.BED_TYPE
+				, R.ROOM_SPEC
+				, R.INS_ID
+				, R.INS_DATE
+				, (SELECT MIN(ROOM_IMAGE_ID) FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID) AS IMG_ID
+				, (SELECT ROOM_IMAGE_NAME FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID AND ROOM_IMAGE_ID = IMG_ID) AS IMG_NM
+			    , (SELECT ROOM_IMAGE_PATH FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID AND ROOM_IMAGE_ID = IMG_ID) AS IMG_PATH
+			FROM T_ROOM R
+			<if test="searchKeyword != null and searchKeyword != ''">
+		        <choose>
+		            <when test="searchCondition == 0">
+						AND	R.INS_ID LIKE '%' || #{searchKeyword} || '%'
+					</when>
+		            <when test="searchCondition == 1">
+						AND	R.ROOM_NAME LIKE '%' || #{searchKeyword} || '%'
+					</when>
+				</choose>
+			</if>
+			
+			ORDER BY R.ROOM_ID DESC
+			LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</select>
+
+	<select id="selectRoomListTotCnt" parameterType="listVO" resultType="int">
+			SELECT COUNT(*) totcnt
+			FROM T_ROOM
+			WHERE 1=1
+			<if test="searchKeyword != null and searchKeyword != ''">
+		        <choose>
+		            <when test="searchCondition == 0">
+						AND INS_ID LIKE '%' || #{searchKeyword} || '%'
+					</when>
+		            <when test="searchCondition == 1">
+						AND	ROOM_NAME LIKE '%' || #{searchKeyword} || '%'
+					</when>
+				</choose>
+			</if>
+	</select>
+	
+	<!-- <select id="selectFileItemList" parameterType="map" resultType="fileItem">
+		select 
+			  file_seq_no
+			, ref_seq_no
+			, biz_type
+			, file_path
+			, file_name
+			, file_save_name
+			, file_size
+			, file_fancy_size
+			, file_down_cnt
+			, reg_date
+			, reg_user
+			, upd_date
+			, upd_user	
+			, thum_save_name
+		from T_ROOM_IMAGE
+		where
+			ref_seq_no = #{ref_seq_no}
+			and biz_type = #{biz_type}
+	</select>
+	
+	<select id="selectFileItem" parameterType="map" resultType="fileItem">
+		select 
+			  file_seq_no
+			, ref_seq_no
+			, biz_type
+			, file_path
+			, file_name
+			, file_save_name
+			, file_size
+			, file_fancy_size
+			, file_down_cnt
+			, reg_date
+			, reg_user
+			, upd_date
+			, upd_user	
+			, thum_save_name
+		from T_ROOM_IMAGE
+		where
+			file_seq_no = #{file_seq_no}
+	</select> -->
+	
+	<insert id="insertFileItem" parameterType="fileItem">
+		insert into T_ROOM_IMAGE
+		(
+			 ROOM_IMAGE_ID
+			, ROOM_ID
+			, ROOM_IMAGE_NAME
+			, ROOM_IMAGE_PATH
+		) values(
+			(SELECT ROOM_IMAGE_ID FROM(SELECT IFNULL(MAX(ROOM_IMAGE_ID)+1,1) AS ROOM_IMAGE_ID FROM T_ROOM_IMAGE) A)
+			, (SELECT ROOM_ID FROM(SELECT MAX(ROOM_ID) AS ROOM_ID FROM T_ROOM) A)
+			, #{roomImageName}
+			, #{roomImagePath}
+		)
+	</insert>
+	
+	<delete id="deleteImage" parameterType="int">
+		DELETE FROM T_ROOM_IMAGE
+		WHERE ROOM_IMAGE_ID = #{roomImageId}
+	</delete>
+
+</mapper>

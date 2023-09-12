@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.sonorous.admin.service.impl.ReservManageMapper">
+
+	<resultMap id="reservManage" type="egovframework.sonorous.admin.service.ReservManageVO">
+		<result property="reqSeq" column="req_seq"/>
+		<result property="mId" column="m_id"/>
+		<result property="kName" column="k_name"/>
+		<result property="roomId" column="room_id"/>
+		<result property="roomName" column="room_name"/>
+		<result property="roomPrice" column="room_price"/>
+		<result property="resInsDate" column="res_ins_date"/>
+		<result property="checkInDate" column="check_in_date"/>
+		<result property="checkOutDate" column="check_out_date"/>
+		<result property="resState" column="res_state"/>
+		<result property="addReq" column="add_req"/>
+		<result property="resStateDate" column="res_state_date"/>
+		<result property="phone" column="phone"/>
+		<result property="email" column="email"/>	
+	
+	</resultMap>
+
+	<select id="selectReservManageCount" parameterType="map" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM T_RESERVATION
+		WHERE
+			1=1
+			<if test="searchWord != null and searchWord !=''">
+				AND ROOM_ID IN (SELECT ROOM_ID  FROM T_ROOM WHERE ROOM_NAME like CONCAT('%', #{searchWord},'%'))
+			</if>
+	</select>
+	
+	<select id="selectReservManageList" parameterType="map" resultMap="reservManage">
+		SELECT
+			A.*
+		FROM(
+			SELECT
+				@ROWNUM := @ROWNUM +1 AS ROWNUM,
+			TB.*
+			FROM(
+				SELECT 
+					REQ_SEQ
+					, M_ID
+					, (SELECT K_NAME FROM T_MEMBER B WHERE A.M_ID = B.M_ID) AS K_NAME
+					, ROOM_ID
+					, (SELECT ROOM_NAME FROM T_ROOM B WHERE A.ROOM_ID = B.ROOM_ID ) AS ROOM_NAME
+					, RES_INS_DATE
+					, CHECK_IN_DATE
+					, CHECK_OUT_DATE
+					, RES_STATE
+					, ADD_REQ
+					, RES_STATE_DATE
+				FROM 
+					T_RESERVATION A
+				WHERE 
+					1=1
+					<if test="searchWord != null and searchWord !=''">
+						AND ROOM_ID IN (SELECT ROOM_ID  FROM T_ROOM WHERE ROOM_NAME like CONCAT('%', #{searchWord},'%'))
+					</if>
+				ORDER BY REQ_SEQ DESC
+			)TB,
+			( SELECT @ROWNUM := 0 ) R
+		) A WHERE A.ROWNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<select id="selectReserv" parameterType="map" resultMap="reservManage">
+		SELECT 
+			REQ_SEQ
+			, M_ID
+			, (SELECT K_NAME FROM T_MEMBER B WHERE A.M_ID = B.M_ID) AS K_NAME
+			, ROOM_ID
+			, (SELECT ROOM_NAME FROM T_ROOM B WHERE A.ROOM_ID = B.ROOM_ID ) AS ROOM_NAME
+			, (SELECT ROOM_PRICE FROM T_ROOM B WHERE A.ROOM_ID = B.ROOM_ID) AS ROOM_PRICE
+			, RES_INS_DATE
+			, CHECK_IN_DATE
+			, CHECK_OUT_DATE
+			, RES_STATE
+			, ADD_REQ
+			, RES_STATE_DATE
+			, (SELECT PHONE FROM T_MEMBER B WHERE A.M_ID = B.M_ID) AS PHONE 
+			, (SELECT EMAIL FROM T_MEMBER B WHERE A.M_ID = B.M_ID) AS EMAIL 
+		FROM 
+			T_RESERVATION A
+		WHERE 
+			1=1
+		<if test="reqSeq != null and reqSeq !=''">
+			AND REQ_SEQ = #{reqSeq}
+		</if>
+	
+	</select>
+	<update id="updateReservManage" parameterType="reservManageVO">
+		UPDATE T_RESERVATION 
+		SET RES_STATE = #{resState}
+		WHERE REQ_SEQ = #{reqSeq}
+	</update>
+	<!-- <select id="selectReserv" parameterType="reservManageVO" resultMap="reservManage">
+			SELECT selectMember
+				REQ_SEQ
+				, M_ID
+				, ROOM_ID
+				, (SELECT ROOM_NAME FROM T_ROOM B WHERE A.ROOM_ID = B.ROOM_ID ) AS ROOM_NAME
+				, RES_INS_DATE
+				, CHECK_IN_DATE
+				, CHECK_OUT_DATE
+				, RES_STATE
+				, ADD_REQ
+				, RES_STATE_DATE
+			FROM 
+				T_RESERVATION A
+			WHERE 
+				1=1
+			<if test="mId != null and mId !=''">
+				AND M_ID = #{mId}
+			</if>
+			<if test="startDate != null and startDate != ''">
+				<if test="endDate != null and endDate != ''">
+					AND RES_INS_DATE BETWEEN #{startDate} AND #{endDate}
+				</if>
+			</if>
+	</select> -->
+	
+	
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.sonorous.user.service.impl.ReservMapper">
+
+	<resultMap id="reserv" type="egovframework.sonorous.user.service.ReservVO">
+		<result property="reqSeq" column="req_seq"/>
+		<result property="mId" column="m_id"/>
+		<result property="roomId" column="room_id"/>
+		<result property="roomName" column="room_name"/>
+		<result property="resInsDate" column="res_ins_date"/>
+		<result property="checkInDate" column="check_in_date"/>
+		<result property="checkOutDate" column="check_out_date"/>
+		<result property="resState" column="res_state"/>
+		<result property="addReq" column="add_req"/>
+		<result property="resStateDate" column="res_state_date"/>
+	</resultMap>
+
+	<select id="selectReserv" parameterType="reservVO" resultMap="reserv">
+			SELECT <!-- selectMember -->
+				REQ_SEQ
+				, M_ID
+				, ROOM_ID
+				, (SELECT ROOM_NAME FROM T_ROOM B WHERE A.ROOM_ID = B.ROOM_ID ) AS ROOM_NAME
+				, RES_INS_DATE
+				, CHECK_IN_DATE
+				, CHECK_OUT_DATE
+				, RES_STATE
+				, ADD_REQ
+				, RES_STATE_DATE
+			FROM 
+				T_RESERVATION A
+			WHERE 
+				1=1
+			<if test="mId != null and mId !=''">
+				AND M_ID = #{mId}
+			</if>
+			<if test="startDate != null and startDate != ''">
+				<if test="endDate != null and endDate != ''">
+					AND RES_INS_DATE BETWEEN #{startDate} AND #{endDate}
+				</if>
+			</if>
+	</select>
+	
+	<update id="canselReserv" parameterType="reservVO">
+		UPDATE T_RESERVATION
+		SET
+			  RES_STATE = 'C'
+			, RES_STATE_DATE = NOW()
+		WHERE REQ_SEQ = ${reqSeq}
+	</update>
+</mapper>

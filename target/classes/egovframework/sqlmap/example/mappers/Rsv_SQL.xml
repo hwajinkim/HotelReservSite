@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.sonorous.user.service.impl.RsvMapper">
+
+	<resultMap id="rsv" type="egovframework.sonorous.user.service.RsvVO">
+		<result property="mId" column="mId"/>
+	</resultMap>
+	
+	<resultMap id="room" type="egovframework.sonorous.admin.service.RoomVO">
+		<result property="peopleNum" column="people_num"/>
+	</resultMap>
+	
+
+	<insert id="insertRsv" parameterType="rsvVO">
+		INSERT INTO T_RESERVATION(
+			REQ_SEQ
+			, M_ID
+			, ROOM_ID
+			, RES_INS_DATE
+			, CHECK_IN_DATE
+			, CHECK_OUT_DATE
+			, RES_STATE
+			, ADD_REQ
+			, RES_STATE_DATE
+			, RSV_PRICE
+		) VALUES (
+			(SELECT REQ_SEQ FROM(SELECT IFNULL(MAX(REQ_SEQ)+1,1) AS REQ_SEQ FROM T_RESERVATION) A)
+			,#{mId}
+			,#{roomId}
+			, NOW()
+			,#{searchCheckIn}
+			,#{searchCheckOut}
+			,'W'
+			,#{addReq}
+			, NOW()
+			, #{rsvPrice}
+		)
+
+	</insert>
+
+	<!-- <update id="updateSample">
+
+			UPDATE SAMPLE
+			SET ID=#{id}
+				, NAME=#{name}
+				, DESCRIPTION=#{description}
+				, USE_YN=#{useYn}
+				  WHERE ID=#{id}
+
+	</update>
+
+	<delete id="deleteSample">
+
+			DELETE FROM SAMPLE
+			WHERE ID=#{id}
+
+	</delete> -->
+
+	<select id="selectRoom" parameterType="int" resultType="egovMap">
+			SELECT 
+				ROOM_ID
+				, ROOM_NAME
+				, ROOM_AMOUNT
+				, ROOM_PRICE
+				, ROOM_SIZE
+				, PEOPLE_NUM
+				, BED_TYPE
+				, ROOM_SPEC
+				, INS_ID
+				, INS_DATE
+				, MOD_ID
+				, MOD_DATE
+			FROM T_ROOM
+			WHERE ROOM_ID = #{roomId}
+	</select>
+
+	<select id="selectRoomTypeList" parameterType="listVO" resultType="egovMap">
+			SELECT ROOM_ID , ROOM_NAME
+			FROM T_ROOM
+	</select>
+
+	<select id="selectRoomList" parameterType="listVO" resultType="egovMap">
+			SELECT
+				R.ROOM_ID
+				, R.ROOM_NAME
+				, R.ROOM_AMOUNT
+				, R.ROOM_PRICE
+				, R.ROOM_SIZE
+				, R.PEOPLE_NUM
+				, R.BED_TYPE
+				, R.ROOM_SPEC
+				, R.INS_ID
+				, R.INS_DATE
+				, (SELECT MIN(ROOM_IMAGE_ID) FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID) AS IMG_ID
+				, (SELECT ROOM_IMAGE_NAME FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID AND ROOM_IMAGE_ID = IMG_ID) AS IMG_NM
+			    , (SELECT ROOM_IMAGE_PATH FROM T_ROOM_IMAGE WHERE R.ROOM_ID = ROOM_ID AND ROOM_IMAGE_ID = IMG_ID) AS IMG_PATH
+			FROM T_ROOM R
+			WHERE 1=1
+			<if test="searchRoomType != null and searchRoomType != ''">
+		       AND R.ROOM_ID = #{searchRoomType}
+			</if>
+			<if test="searchCheckIn != '' and searchCheckOut != ''">
+		       AND R.ROOM_AMOUNT <![CDATA[>]]> (SELECT COUNT(*) AS CNT FROM T_RESERVATION RS WHERE RS.ROOM_ID = R.ROOM_ID 
+		       									AND (
+		       											RS.CHECK_IN_DATE <![CDATA[<=]]> #{searchCheckIn} AND RS.CHECK_OUT_DATE <![CDATA[>=]]> #{searchCheckOut}
+														OR RS.CHECK_IN_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+														OR RS.CHECK_OUT_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+		       										)
+		       									)
+			</if>
+			<if test="searchPeople != null and searchPeople != ''">
+		       AND R.PEOPLE_NUM <![CDATA[>=]]> #{searchPeople}
+			</if>
+			
+			ORDER BY R.ROOM_ID DESC
+			LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</select>
+
+	<select id="selectRoomListTotCnt" parameterType="listVO" resultType="int">
+			SELECT COUNT(*) totcnt
+			FROM T_ROOM
+			WHERE 1=1
+			<if test="searchRoomType != null and searchRoomType != ''">
+		       AND ROOM_ID = #{searchRoomType}
+			</if>
+			<if test="searchCheckIn != '' and searchCheckOut != ''">
+		       AND ROOM_AMOUNT <![CDATA[>]]> (SELECT COUNT(*) AS CNT FROM T_RESERVATION RS WHERE RS.ROOM_ID = ROOM_ID 
+		       								  AND (
+		       											RS.CHECK_IN_DATE <![CDATA[<=]]> #{searchCheckIn} AND RS.CHECK_OUT_DATE <![CDATA[>=]]> #{searchCheckOut}
+														OR RS.CHECK_IN_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+														OR RS.CHECK_OUT_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+		       										)
+		       									)
+			</if>
+			<if test="searchPeople != null and searchPeople != ''">
+		       AND PEOPLE_NUM = #{searchPeople}
+			</if>
+	</select>
+	
+	<select id="selectPeopleNum" parameterType="listVO" resultMap="room">
+		SELECT
+			R.PEOPLE_NUM  - (
+				SELECT COUNT(*) AS CNT 
+				FROM T_RESERVATION RS
+				WHERE RS.ROOM_ID = R.ROOM_ID   
+				<if test="searchCheckIn != '' and searchCheckOut != ''">   									
+				AND (
+						RS.CHECK_IN_DATE <![CDATA[<=]]> #{searchCheckIn} AND RS.CHECK_OUT_DATE <![CDATA[>=]]> #{searchCheckOut}
+						OR RS.CHECK_IN_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+						OR RS.CHECK_OUT_DATE BETWEEN #{searchCheckIn} AND #{searchCheckOut}
+				)
+				</if>
+			)AS PEOPLE_NUM
+		FROM T_ROOM R
+		<if test="searchRoomType != null and searchRoomType != ''">
+		WHERE R.ROOM_ID = #{searchRoomType}
+		</if>
+	</select>
+
+</mapper>
